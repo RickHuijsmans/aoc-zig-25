@@ -1,0 +1,95 @@
+const std = @import("std");
+const list = @import("list.zig");
+
+pub const String = struct {
+    allocator: ?std.mem.Allocator = null,
+    contents: []const u8,
+    size: usize,
+
+    pub fn init(allocator: std.mem.Allocator, bytes: []const u8) !String {
+        const is_terminated = isNullTerminated(bytes);
+        const buffer = try allocator.alloc(u8, if (is_terminated) bytes.len else bytes.len + 1);
+        @memcpy(buffer[0..bytes.len], bytes);
+        buffer[buffer.len - 1] = 0;
+
+        return .{ .allocator = allocator, .contents = buffer, .size = buffer.len };
+    }
+
+    pub fn initFixed(comptime bytes: []const u8) String {
+        const terminated = bytes ++ &[_]u8{0};
+        return .{ .contents = terminated, .size = terminated.len };
+    }
+
+    pub fn deinit(self: *String) void {
+        if (self.allocator) |alloc| {
+            alloc.free(self.contents);
+        }
+    }
+
+    pub fn get(self: *const String) []const u8 {
+        if (self.size <= 0)
+            return self.contents[0..0];
+
+        return self.contents[0 .. self.size - 1];
+    }
+
+    pub fn getTerminated(self: *const String) [:0]const u8 {
+        if (self.size <= 0)
+            return self.contents[0..0 :0];
+
+        return self.contents[0 .. self.size - 1 :0];
+    }
+
+    pub fn split(self: *const String, delimiter: [:0]const u8, trim_empty: bool, allocator: std.mem.Allocator) !list.List(String) {
+        var results = try list.List(String).init(allocator);
+        var it = std.mem.splitAny(u8, self.contents, delimiter);
+
+        while (it.next()) |result| {
+            if (trim_empty and isNullOrWhitespace(result))
+                continue;
+
+            try results.add(try String.init(allocator, result));
+        }
+
+        return results;
+    }
+
+    pub fn startsWith(self: *const String, searchString: []const u8) bool {
+        return std.mem.startsWith(u8, self.contents, searchString);
+    }
+
+    pub fn parseInt(string: anytype, comptime T: type) !T {
+        return std.fmt.parseInt(T, getRawString(string), 10);
+    }
+
+    pub fn getRawString(string: anytype) []const u8 {
+        if (@TypeOf(string) == String or @TypeOf(string) == *String or @TypeOf(string) == *const String) {
+            return string.get();
+        } else {
+            return string;
+        }
+    }
+
+    pub fn isNullOrWhitespace(string: []const u8) bool {
+        if (string.len <= 0)
+            return true;
+
+        for (string) |char| {
+            if (!isWhitespace(char))
+                return false;
+        }
+
+        return true;
+    }
+
+    pub fn isWhitespace(char: u8) bool {
+        return switch (char) {
+            0, ' ', '\t', '\n', '\r' => true,
+            else => false,
+        };
+    }
+
+    pub fn isNullTerminated(string: []const u8) bool {
+        return string.len > 0 and string[string.len - 1] == 0;
+    }
+};
