@@ -13,5 +13,6 @@ docgen_tmp/
 
 
 *.input
+.session
 
 # End of https://www.toptal.com/developers/gitignore/api/zig

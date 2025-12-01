@@ -1,7 +1,7 @@
 const std = @import("std");
 const string = @import("string.zig");
 
-pub fn getInput(allocator: std.mem.Allocator, path: []const u8) !string.String {
+pub fn readAllText(allocator: std.mem.Allocator, path: []const u8) !string.String {
     const handle = if (std.fs.path.isAbsolute(path))
         try std.fs.openFileAbsolute(path, .{})
     else

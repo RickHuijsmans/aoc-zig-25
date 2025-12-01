@@ -1,14 +1,11 @@
 const std = @import("std");
 const String = @import("lib/string.zig").String;
 
-pub const PuzzleResult = struct {
-    isCorrect: bool,
-    value: String,
-    timeElapsed: u64,
-    memoryUsed: u64
-};
+pub const PuzzleResult = struct { isCorrect: bool, timeElapsed: f64, memoryUsed: f64 };
 
 pub const Day = struct {
-    solvePart1: fn(allocator: std.mem.Allocator, input: String) anyerror!PuzzleResult,
-    solvePart2: fn(allocator: std.mem.Allocator, input: String) anyerror!PuzzleResult
+    day: u8,
+    input: String,
+    solvePart1: fn () anyerror!PuzzleResult,
+    solvePart2: fn () anyerror!PuzzleResult,
 };

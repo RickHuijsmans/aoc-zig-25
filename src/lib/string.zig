@@ -70,6 +70,23 @@ pub const String = struct {
         }
     }
 
+    pub fn stringReplace(self: *const String, allocator: std.mem.Allocator, needle: anytype, replacement: anytype) String {
+        return replace(allocator, getRawString(self), needle, replacement);
+    }
+
+    pub fn replace(allocator: std.mem.Allocator, string: anytype, needle: anytype, replacement: anytype) String {
+        const str = getRawString(string);
+        const needleStr = getRawString(needle);
+        const replacementStr = getRawString(replacement);
+
+        const size = std.mem.replacementSize(u8, str, needleStr, replacementStr);
+        const output = try allocator.alloc(u8, size);
+        defer allocator.free(output);
+
+        _ = std.mem.replace(u8, str, needleStr, replacementStr, output);
+        return String.init(allocator, output);
+    }
+
     pub fn isNullOrWhitespace(string: []const u8) bool {
         if (string.len <= 0)
             return true;

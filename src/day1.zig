@@ -3,9 +3,21 @@ const String = @import("lib/string.zig").String;
 const day = @import("day.zig");
 const linq = @import("lib/linq.zig");
 const file = @import("lib/file.zig");
+const dayHelper = @import("utility/day-helper.zig");
+const inputHelper = @import("utility/input-helper.zig");
 
-const Day1Impl = struct {
+pub const Day1 = struct {
+    day: u8,
+    debugMode: bool,
     allocator: std.mem.Allocator,
+
+    pub fn debug(self: *const Day1, comptime fmt: []const u8, args: anytype) void {
+        dayHelper.printDebug(self.debugMode, fmt, args);
+    }
+
+    pub fn init(allocator: std.mem.Allocator, debugMode: bool) Day1 {
+        return .{ .day = 1, .allocator = allocator, .debugMode = debugMode };
+    }
 
     const sample1 = String.initFixed(
         \\L68
@@ -20,23 +32,23 @@ const Day1Impl = struct {
         \\L82
     );
 
-    pub fn solveSample1(self: *const Day1Impl) !u64 {
-        return self.solve1(&sample1);
+    pub fn solveSample1(self: *const Day1) !u64 {
+        return self.solve1(self.allocator, &sample1);
     }
 
-    pub fn solve1(_: *const Day1Impl, input: *const String) !u64 {
+    pub fn solve1(self: *const Day1, _: std.mem.Allocator, input: *const String) !u64 {
         var rows = try linq.split(input, "\n", true);
         const totalDigits: i16 = 100;
         const startPos: i16 = 50;
         var currentPos = startPos;
         var seenZeros: u64 = 0;
 
-        std.debug.print("\nStart position: {}\n", .{startPos});
+        self.debug("\nStart position: {}\n", .{startPos});
 
         while (rows.next()) |row| {
             const clockwise = row[0] == 'R';
             const amount = try String.parseInt(row[1..], i16);
-            std.debug.print("Move {s} {} times\n", .{ row[0..1], amount });
+            self.debug("Move {s} {} times\n", .{ row[0..1], amount });
 
             if (clockwise) {
                 currentPos += amount;
@@ -51,25 +63,23 @@ const Day1Impl = struct {
             if (currentPos == 0) {
                 seenZeros += 1;
             }
-
-            // std.debug.print("New Position: {}\n", .{currentPos});
         }
 
         return seenZeros;
     }
 
-    pub fn solveSample2(self: *const Day1Impl) !u64 {
-        return self.solve2(&sample1);
+    pub fn solveSample2(self: *const Day1) !u64 {
+        return self.solve2(self.allocator, &sample1);
     }
 
-    pub fn solve2(_: *const Day1Impl, input: *const String) !u64 {
+    pub fn solve2(self: *const Day1, _: std.mem.Allocator, input: *const String) !u64 {
         var rows = try linq.split(input, "\n", true);
         const totalDigits: i16 = 100;
         const startPos: i16 = 50;
         var currentPos = startPos;
         var seenZeros: u64 = 0;
 
-        std.debug.print("\nStart position: {}\n", .{startPos});
+        self.debug("\nStart position: {}\n", .{startPos});
 
         while (rows.next()) |row| {
             const clockwise = row[0] == 'R';
@@ -77,7 +87,7 @@ const Day1Impl = struct {
             const startZeros = seenZeros;
             const prevPos = currentPos;
 
-            std.debug.print("Move {s} {} times", .{ row[0..1], amount });
+            self.debug("Move {s} {} times", .{ row[0..1], amount });
 
             for (0..@intCast(amount)) |_| {
                 currentPos += if (clockwise) 1 else -1;
@@ -88,11 +98,11 @@ const Day1Impl = struct {
                 }
             }
 
-            std.debug.print("\n", .{});
+            self.debug("\n", .{});
             if (seenZeros != startZeros) {
-                std.debug.print("Position: {} -> {} with {} zeroes\n\n", .{ prevPos, currentPos, seenZeros - startZeros });
+                self.debug("Position: {} -> {} with {} zeroes\n\n", .{ prevPos, currentPos, seenZeros - startZeros });
             } else {
-                std.debug.print("Position: {} => {}\n\n", .{ prevPos, currentPos });
+                self.debug("Position: {} => {}\n\n", .{ prevPos, currentPos });
             }
         }
 
@@ -101,41 +111,27 @@ const Day1Impl = struct {
 };
 
 test "Sample 1" {
-    const pageAlloc = std.heap.page_allocator;
-    var arena = std.heap.ArenaAllocator.init(pageAlloc);
-    const alloc = arena.allocator();
-    const context = Day1Impl{ .allocator = alloc };
-    const result = try context.solveSample1();
+    const context = dayHelper.initTest(Day1);
+    const result = try context.day.solveSample1();
     try std.testing.expectEqual(3, result);
 }
 
 test "Solve 1" {
-    const pageAlloc = std.heap.page_allocator;
-    var arena = std.heap.ArenaAllocator.init(pageAlloc);
-    const alloc = arena.allocator();
-    const context = Day1Impl{ .allocator = alloc };
-
-    const input = try file.getInput(alloc, "./src/day1.input");
-    const result = try context.solve1(&input);
+    const context = dayHelper.initTest(Day1);
+    const input = try context.getInput();
+    const result = try context.day.solve1(context.allocator, &input);
     try std.testing.expectEqual(982, result);
 }
 
 test "Sample 2" {
-    const pageAlloc = std.heap.page_allocator;
-    var arena = std.heap.ArenaAllocator.init(pageAlloc);
-    const alloc = arena.allocator();
-    const context = Day1Impl{ .allocator = alloc };
-    const result = try context.solveSample2();
+    const context = dayHelper.initTest(Day1);
+    const result = try context.day.solveSample2();
     try std.testing.expectEqual(6, result);
 }
 
 test "Solve 2" {
-    const pageAlloc = std.heap.page_allocator;
-    var arena = std.heap.ArenaAllocator.init(pageAlloc);
-    const alloc = arena.allocator();
-    const context = Day1Impl{ .allocator = alloc };
-
-    const input = try file.getInput(alloc, "./src/day1.input");
-    const result = try context.solve2(&input);
+    const context = dayHelper.initTest(Day1);
+    const input = try context.getInput();
+    const result = try context.day.solve2(context.allocator, &input);
     try std.testing.expectEqual(6106, result);
 }
