@@ -5,6 +5,7 @@ const linq = @import("lib/linq.zig");
 const file = @import("lib/file.zig");
 const dayHelper = @import("utility/day-helper.zig");
 const inputHelper = @import("utility/input-helper.zig");
+const utility = @import("lib/utility.zig");
 
 pub const Day2 = struct {
     day: u8,
@@ -32,6 +33,8 @@ pub const Day2 = struct {
         var sanitized = try input.trimWhitespace(alloc);
         defer sanitized.deinit();
 
+        const powLookup = utility.getPowLookup(u64, 6);
+
         var pairs = try linq.split(sanitized, ",", true);
         while (pairs.next()) |pair| {
             var segments = try linq.split(pair, "-", true);
@@ -41,11 +44,11 @@ pub const Day2 = struct {
             const start = try String.parseInt(s1, u64);
             const end = try String.parseInt(s2, u64);
             for (start..end + 1) |i| {
-                const digits: u64 = @intFromFloat(@ceil(@log10(@as(f64, @floatFromInt(i)))));
+                const digits = utility.getDigits(u64, i);
                 if (digits % 2 == 1)
                     continue;
 
-                const center = std.math.pow(u64, 10, digits / 2);
+                const center = powLookup[digits / 2];
                 const left: u64 = @divFloor(@as(u64, @intCast(i)), center);
                 const right: u64 = @mod(i, center);
 
@@ -69,13 +72,10 @@ pub const Day2 = struct {
         var sanitized = try input.trimWhitespace(alloc);
         defer sanitized.deinit();
 
-        const max_len = 20;
-        var buf: [max_len]u8 = undefined;
         var pairs = try linq.split(sanitized, ",", true);
-        // var memChecks: u64 = 0;
-        var bufTime: i64 = 0;
         var skips: u64 = 0;
 
+        const powLookup = utility.getPowLookup(usize, 6);
         while (pairs.next()) |pair| {
             var segments = try linq.split(pair, "-", true);
             const s1 = segments.next().?;
@@ -86,11 +86,7 @@ pub const Day2 = struct {
             for (start..end + 1) |i| {
                 var isMatch = false;
 
-                const before = std.time.microTimestamp();
-                const str = try std.fmt.bufPrint(&buf, "{}", .{i});
-                bufTime += std.time.microTimestamp() - before;
-
-                const digits = str.len;
+                const digits = utility.getDigits(usize, i);
                 if (digits < 2) {
                     skips += 1;
                     continue;
@@ -103,11 +99,12 @@ pub const Day2 = struct {
                     }
 
                     var subMatch = true;
-                    var index: usize = 0;
+                    const pow = powLookup[digit];
+                    const pattern = i % pow;
 
-                    while (subMatch and index < str.len) : (index += 1) {
-                        const subIndex = index % digit;
-                        subMatch = subMatch and str[index] == str[subIndex];
+                    var val = @divFloor(i, pow);
+                    while (val > 0 and subMatch) : (val = @divFloor(val, pow)) {
+                        subMatch = subMatch and pattern == val % pow;
                     }
 
                     if (subMatch) {
@@ -123,7 +120,7 @@ pub const Day2 = struct {
             }
         }
 
-        self.debug("\nSkips: {}, Buf time: {}ms\n", .{ skips, @as(f64, @floatFromInt(bufTime)) / 1000.0 });
+        self.debug("\nSkips: {}\n", .{skips});
 
         return invalids;
     }

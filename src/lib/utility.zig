@@ -30,3 +30,23 @@ pub fn deinitIfPossible(item: anytype, allocator: std.mem.Allocator) void {
         }
     }
 }
+
+pub fn getDigits(comptime T: type, integer: anytype) T {
+    if (integer == 0) {
+        return 1;
+    }
+
+    return @as(T, @intFromFloat(@floor(@log10(@as(f64, @floatFromInt(integer)))))) + 1;
+}
+
+pub fn getPowLookup(
+    comptime T: type,
+    comptime digits: comptime_int,
+) [digits]T {
+    var powLookup = [_]T{0} ** digits;
+    for (0..powLookup.len) |i| {
+        powLookup[i] = std.math.pow(T, 10, i);
+    }
+
+    return powLookup;
+}
