@@ -59,7 +59,11 @@ pub const String = struct {
     }
 
     pub fn parseInt(string: anytype, comptime T: type) !T {
-        return std.fmt.parseInt(T, getRawString(string), 10);
+        const rawString = getRawString(string);
+        return std.fmt.parseInt(T, rawString, 10) catch |e| {
+            std.debug.print("Error whilst trying to parse '{s}' as an integer!", .{rawString});
+            return e;
+        };
     }
 
     pub fn getRawString(string: anytype) []const u8 {
@@ -70,11 +74,33 @@ pub const String = struct {
         }
     }
 
-    pub fn stringReplace(self: *const String, allocator: std.mem.Allocator, needle: anytype, replacement: anytype) String {
+    pub fn trimWhitespace(self: *const String, allocator: std.mem.Allocator) !String {
+        var startFound = false;
+        var startPos: usize = 0;
+        var endPos: usize = 0;
+
+        for (0..self.size) |i| {
+            if (String.isWhitespace(self.contents[i])) {
+                continue;
+            }
+
+            if (!startFound) {
+                startPos = i;
+                startFound = true;
+            }
+
+            endPos = i + 1;
+        }
+
+        const slice = self.contents[startPos..endPos];
+        return String.init(allocator, slice);
+    }
+
+    pub fn stringReplace(self: *const String, allocator: std.mem.Allocator, needle: anytype, replacement: anytype) !String {
         return replace(allocator, getRawString(self), needle, replacement);
     }
 
-    pub fn replace(allocator: std.mem.Allocator, string: anytype, needle: anytype, replacement: anytype) String {
+    pub fn replace(allocator: std.mem.Allocator, string: anytype, needle: anytype, replacement: anytype) !String {
         const str = getRawString(string);
         const needleStr = getRawString(needle);
         const replacementStr = getRawString(replacement);
@@ -85,6 +111,12 @@ pub const String = struct {
 
         _ = std.mem.replace(u8, str, needleStr, replacementStr, output);
         return String.init(allocator, output);
+    }
+
+    pub fn replaceInPlace(self: *String, needle: anytype, replacement: anytype) void {
+        const needleStr = getRawString(needle);
+        const replacementStr = getRawString(replacement);
+        std.mem.replaceScalar(u8, self.contents, needleStr, replacementStr);
     }
 
     pub fn isNullOrWhitespace(string: []const u8) bool {

@@ -11,6 +11,7 @@ pub fn runDay(comptime n: u8, allocator: std.mem.Allocator) !void {
     // Update this to add new days
     var d = switch (n) {
         1 => @import("day1.zig").Day1.init(allocator, false),
+        2 => @import("day2.zig").Day2.init(allocator, false),
         else => return,
     };
 
