@@ -1,4 +1,3 @@
-const day = @import("day.zig");
 const std = @import("std");
 const inputHelper = @import("utility/input-helper.zig");
 

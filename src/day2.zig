@@ -1,6 +1,5 @@
 const std = @import("std");
 const String = @import("lib/string.zig").String;
-const day = @import("day.zig");
 const linq = @import("lib/linq.zig");
 const file = @import("lib/file.zig");
 const dayHelper = @import("utility/day-helper.zig");
@@ -52,7 +51,7 @@ pub const Day2 = struct {
             const end = try String.parseInt(s2, u64);
             const endDigits = utility.getDigits(u64, end);
 
-            self.debugLine("Range: {s}-{s}", .{ s1, s2});
+            self.debugLine("Range: {s}-{s}", .{ s1, s2 });
             for (startDigits..endDigits + 1) |digit| {
                 if (digit % 2 == 1)
                     continue;
@@ -62,17 +61,17 @@ pub const Day2 = struct {
 
                 const first = @divFloor(@as(u64, @intCast(start)), half);
                 var last = @divFloor(@as(u64, @intCast(end)), half);
-                if(last >= half)
+                if (last >= half)
                     last = half;
 
                 self.debugLine("Digit: {}", .{digit});
-                self.debugLine("First: {}, Last: {} ({})", .{first, last, half});
+                self.debugLine("First: {}, Last: {} ({})", .{ first, last, half });
 
-                for(first..last+1)|i|{
+                for (first..last + 1) |i| {
                     const value = i + half * i;
                     checks += 1;
-                    if(value >= start and value <= end and utility.getDigits(u64, value) == digit){
-                        self.debugLine("Digit: {} ({} + {})", .{value, half * i, i});
+                    if (value >= start and value <= end and utility.getDigits(u64, value) == digit) {
+                        self.debugLine("Digit: {} ({} + {})", .{ value, half * i, i });
                         invalids += value;
                         passes += 1;
                     }
