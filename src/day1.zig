@@ -53,9 +53,6 @@ pub const Day1 = struct {
                 currentPos += amount;
             } else {
                 currentPos -= amount;
-                while (currentPos < 0) {
-                    currentPos = totalDigits + currentPos;
-                }
             }
 
             currentPos = @mod(currentPos, totalDigits);
