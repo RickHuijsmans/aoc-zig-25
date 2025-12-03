@@ -16,6 +16,10 @@ pub const Day2 = struct {
         dayHelper.printDebug(self.debugMode, fmt, args);
     }
 
+    pub fn debugLine(self: *const Day2, comptime fmt: []const u8, args: anytype) void {
+        self.debug("\n" ++ fmt, args);
+    }
+
     pub fn init(allocator: std.mem.Allocator, debugMode: bool) Day2 {
         return .{ .day = 2, .allocator = allocator, .debugMode = debugMode };
     }
@@ -31,10 +35,11 @@ pub const Day2 = struct {
     pub fn solve1(self: *const Day2, alloc: std.mem.Allocator, input: *const String) !u64 {
         var invalids: u64 = 0;
         var sanitized = try input.trimWhitespace(alloc);
+        var checks: u64 = 0;
+        var passes: u64 = 0;
         defer sanitized.deinit();
 
         const powLookup = utility.getPowLookup(u64, 6);
-
         var pairs = try linq.split(sanitized, ",", true);
         while (pairs.next()) |pair| {
             var segments = try linq.split(pair, "-", true);
@@ -42,22 +47,41 @@ pub const Day2 = struct {
             const s2 = segments.next().?;
 
             const start = try String.parseInt(s1, u64);
+            const startDigits = utility.getDigits(u64, start);
+
             const end = try String.parseInt(s2, u64);
-            for (start..end + 1) |i| {
-                const digits = utility.getDigits(u64, i);
-                if (digits % 2 == 1)
+            const endDigits = utility.getDigits(u64, end);
+
+            self.debugLine("Range: {s}-{s}", .{ s1, s2});
+            for (startDigits..endDigits + 1) |digit| {
+                if (digit % 2 == 1)
                     continue;
 
-                const center = powLookup[digits / 2];
-                const left: u64 = @divFloor(@as(u64, @intCast(i)), center);
-                const right: u64 = @mod(i, center);
+                const halfDigit = digit / 2;
+                const half = powLookup[halfDigit];
 
-                if (left == right) {
-                    invalids += i;
+                const first = @divFloor(@as(u64, @intCast(start)), half);
+                var last = @divFloor(@as(u64, @intCast(end)), half);
+                if(last >= half)
+                    last = half;
 
-                    self.debug("\nAdding {d}\n", .{i});
+                self.debugLine("Digit: {}", .{digit});
+                self.debugLine("First: {}, Last: {} ({})", .{first, last, half});
+
+                for(first..last+1)|i|{
+                    const value = i + half * i;
+                    checks += 1;
+                    if(value >= start and value <= end and utility.getDigits(u64, value) == digit){
+                        self.debugLine("Digit: {} ({} + {})", .{value, half * i, i});
+                        invalids += value;
+                        passes += 1;
+                    }
                 }
             }
+
+            self.debug("\nChecks: {}/{}\n", .{ passes, checks });
+            passes = 0;
+            checks = 0;
         }
 
         return invalids;
@@ -69,6 +93,8 @@ pub const Day2 = struct {
 
     pub fn solve2(self: *const Day2, alloc: std.mem.Allocator, input: *const String) !u64 {
         var invalids: u64 = 0;
+        var checks: u64 = 0;
+        var passes: u64 = 0;
         var sanitized = try input.trimWhitespace(alloc);
         defer sanitized.deinit();
 
@@ -101,6 +127,7 @@ pub const Day2 = struct {
                     var subMatch = true;
                     const pow = powLookup[digit];
                     const pattern = i % pow;
+                    checks += 1;
 
                     var val = @divFloor(i, pow);
                     while (val > 0 and subMatch) : (val = @divFloor(val, pow)) {
@@ -109,15 +136,20 @@ pub const Day2 = struct {
 
                     if (subMatch) {
                         isMatch = true;
+                        passes += 1;
                         break;
                     }
                 }
 
                 if (isMatch) {
                     invalids += i;
-                    self.debug("\nAdding {d}\n", .{i});
+                    self.debug("\nAdding {d}", .{i});
                 }
             }
+
+            self.debug("\nChecks: {}/{}\n", .{ passes, checks });
+            passes = 0;
+            checks = 0;
         }
 
         self.debug("\nSkips: {}\n", .{skips});
