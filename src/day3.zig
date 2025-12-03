@@ -38,7 +38,7 @@ pub const Day3 = struct {
         var joltage: u64 = 0;
 
         while (rows.next()) |row| {
-            joltage += optimize(&row, 0, 2);
+            joltage += optimize(&row, 2);
         }
 
         return joltage;
@@ -53,29 +53,33 @@ pub const Day3 = struct {
         var joltage: u64 = 0;
 
         while (rows.next()) |row| {
-            joltage += optimize(&row, 0, 12);
+            joltage += optimize(&row, 12);
         }
 
         return joltage;
     }
 
-    fn optimize(batteryBank: *const []const u8, start: usize, digits: usize) u64 {
-        var highest: usize = 0;
-        var highestIndex: usize = 0;
+    fn optimize(batteryBank: *const []const u8, digits: usize) u64 {
+        var cellsRemaining: usize = digits;
+        var total: u64 = 0;
+        var start: usize = 0;
+        while (cellsRemaining > 0) {
+            var highest: usize = 0;
+            var highestIndex: usize = 0;
 
-        for (start..batteryBank.len - digits + 1) |i| {
-            const value = batteryBank.*[i] - 48;
-            if (value > highest) {
-                highest = value;
-                highestIndex = i;
+            for (start..batteryBank.len - cellsRemaining + 1) |i| {
+                const value = batteryBank.*[i] - 48;
+                if (value > highest) {
+                    highest = value;
+                    highestIndex = i;
+                }
             }
-        }
 
-        if (digits == 1) {
-            return highest;
+            total += powLookup[cellsRemaining - 1] * highest;
+            start = highestIndex + 1;
+            cellsRemaining -= 1;
         }
-
-        return powLookup[digits - 1] * highest + optimize(batteryBank, highestIndex + 1, digits - 1);
+        return total;
     }
 };
 
