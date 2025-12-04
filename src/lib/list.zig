@@ -21,6 +21,7 @@ pub fn ListIterator(comptime T: type) type {
 pub fn List(comptime T: type) type {
     return struct {
         items: std.ArrayList(T),
+        hashset: ?std.AutoHashMap(T, usize),
         allocator: std.mem.Allocator,
 
         const Self = @This();
@@ -30,13 +31,27 @@ pub fn List(comptime T: type) type {
         }
 
         pub fn initCapacity(allocator: std.mem.Allocator, num: usize) !Self {
-            return .{ .items = try std.ArrayList(T).initCapacity(allocator, num), .allocator = allocator };
+            return .{ .items = try std.ArrayList(T).initCapacity(allocator, num), .allocator = allocator, .hashset = undefined };
+        }
+
+        pub fn initWithHashSet(allocator: std.mem.Allocator, num: u32) !Self {
+            var hashSet = std.AutoHashMap(T, usize).init(allocator);
+            try hashSet.ensureTotalCapacity(num);
+
+            return .{ .items = try std.ArrayList(T).initCapacity(allocator, num), .allocator = allocator, .hashset = hashSet };
         }
 
         pub fn from(allocator: std.mem.Allocator, it: *ListIterator(T)) !Self {
-            var instance = Self.init(allocator);
+            var instance = try Self.init(allocator);
+            var i: usize = 0;
             while (it.next()) |value| {
                 instance.add(value);
+
+                if (instance.hashset) |*set| {
+                    set.put(value, i);
+                }
+
+                i += 1;
             }
 
             return instance;
@@ -44,6 +59,9 @@ pub fn List(comptime T: type) type {
 
         pub fn deinit(self: *Self) void {
             self.items.deinit(self.allocator);
+            if (self.hashset) |*set| {
+                set.deinit();
+            }
         }
 
         pub fn deinitAll(self: *Self) void {
@@ -52,6 +70,9 @@ pub fn List(comptime T: type) type {
             }
 
             self.items.deinit(self.allocator);
+            if (self.hashset) |*set| {
+                set.deinit();
+            }
         }
 
         pub fn iterator(self: *Self) ListIterator(T) {
@@ -107,6 +128,12 @@ pub fn List(comptime T: type) type {
 
         pub fn sort(self: *Self, comptime sortFn: fn (void, lhs: T, rhs: T) bool) void {
             std.mem.sort(T, self.items.items, {}, sortFn);
+
+            if (self.hashset) |*set| {
+                for (0..self.items.items.len) |i| {
+                    try set.put(self.items.items[i], i);
+                }
+            }
         }
 
         pub fn map(self: *const Self, comptime T2: type, context: anytype, comptime selector: fn (@TypeOf(context), T) anyerror!T2, allocator: std.mem.Allocator) !List(T2) {
@@ -118,11 +145,19 @@ pub fn List(comptime T: type) type {
         }
 
         pub fn add(self: *Self, item: T) error{OutOfMemory}!void {
+            if (self.hashset) |*set| {
+                try set.put(item, self.items.items.len);
+            }
+
             try self.items.append(self.allocator, item);
         }
 
         pub fn clear(self: *Self) void {
             self.items.clearRetainingCapacity();
+
+            if (self.hashset) |*set| {
+                set.clearRetainingCapacity();
+            }
         }
 
         pub fn remove(self: *Self, item: T) bool {
@@ -135,6 +170,10 @@ pub fn List(comptime T: type) type {
                 return false;
             }
 
+            if (self.hashset) |*set| {
+                _ = set.remove(self.items.items[index]);
+            }
+
             _ = self.items.swapRemove(index);
             return true;
         }
@@ -142,6 +181,7 @@ pub fn List(comptime T: type) type {
         pub fn pop(self: *Self) T {
             const lastIndex = self.count() - 1;
             const item = self.items.items[lastIndex];
+
             if (!self.removeByIndex(lastIndex)) {
                 @panic("Can't pop an empty list!");
             }
@@ -171,6 +211,15 @@ pub fn List(comptime T: type) type {
         }
 
         pub fn indexOf(self: *const Self, item: T) isize {
+            if (self.hashset) |set| {
+                const result = set.get(item);
+                if (result) |r| {
+                    return @intCast(r);
+                } else {
+                    return -1;
+                }
+            }
+
             for (self.items.items, 0..) |list_item, i| {
                 if (list_item == item) {
                     return @intCast(i);

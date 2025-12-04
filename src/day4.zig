@@ -55,8 +55,8 @@ const Grid = struct {
         return Grid{ .string = input, .width = width, .height = height };
     }
 
-    pub fn deinit(self: *Grid) void {
-        self.string.deinit();
+    pub fn deinit(self: *Grid, allocator: std.mem.Allocator) void {
+        allocator.free(self.string);
     }
 
     pub fn get(self: *const Grid, x: usize, y: usize) u8 {
@@ -192,8 +192,9 @@ pub const Day4 = struct {
     pub fn solve2(self: *const Day4, alloc: std.mem.Allocator, raw: *const String) !u64 {
         var grid = try Grid.init(alloc, raw);
         var copy = try grid.clone(alloc);
-        var stack = try List(usize).initCapacity(alloc, 1024);
-        var stack2 = try List(usize).initCapacity(alloc, 1024);
+        var stack = try List(usize).initWithHashSet(alloc, 1024);
+        var stack2 = try List(usize).initWithHashSet(alloc, 1024);
+
         var rolls: u64 = 0;
         var prevRolls: u64 = 0;
 
@@ -227,6 +228,10 @@ pub const Day4 = struct {
 
         while (stack.count() > 0) {
             std.mem.copyForwards(u8, grid.string, copy.string);
+            if (self.debugMode and grid.width <= 10) {
+                grid.print();
+            }
+
             while (stack.count() > 0) {
                 const i = stack.pop();
                 const x, const y = grid.getPos(i);
