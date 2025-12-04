@@ -24,8 +24,13 @@ pub fn List(comptime T: type) type {
         allocator: std.mem.Allocator,
 
         const Self = @This();
+
         pub fn init(allocator: std.mem.Allocator) !Self {
-            return .{ .items = try std.ArrayList(T).initCapacity(allocator, 0), .allocator = allocator };
+            return initCapacity(allocator, 0);
+        }
+
+        pub fn initCapacity(allocator: std.mem.Allocator, num: usize) !Self {
+            return .{ .items = try std.ArrayList(T).initCapacity(allocator, num), .allocator = allocator };
         }
 
         pub fn from(allocator: std.mem.Allocator, it: *ListIterator(T)) !Self {
@@ -116,14 +121,29 @@ pub fn List(comptime T: type) type {
             try self.items.append(self.allocator, item);
         }
 
+        pub fn clear(self: *Self) void {
+            self.items.clearRetainingCapacity();
+        }
+
         pub fn remove(self: *Self, item: T) bool {
             const index = self.indexOf(item);
+            return self.removeByIndex(index);
+        }
+
+        pub fn removeByIndex(self: *Self, index: usize) bool {
             if (index < 0) {
                 return false;
             }
 
             _ = self.items.swapRemove(index);
             return true;
+        }
+
+        pub fn pop(self: *Self) T{
+            const lastIndex = self.count() - 1;
+            const item = self.items.items[lastIndex];
+            self.removeByIndex(lastIndex);
+            return item;
         }
 
         pub fn removeAndFree(self: *Self, item: T, allocator: ?std.mem.Allocator) bool {

@@ -20,6 +20,10 @@ pub const String = struct {
         return .{ .contents = terminated, .size = terminated.len };
     }
 
+    pub fn clone(self: *const String, allocator: std.mem.Allocator) !String{
+        return init(allocator, self.contents);
+    }
+
     pub fn deinit(self: *String) void {
         if (self.allocator) |alloc| {
             alloc.free(self.contents);
@@ -56,6 +60,16 @@ pub const String = struct {
 
     pub fn startsWith(self: *const String, searchString: []const u8) bool {
         return std.mem.startsWith(u8, self.contents, searchString);
+    }
+
+    pub fn indexOf(self: *const String, char: u8) isize {
+        for(0..self.size)|index|{
+            if(self.contents[index] == char){
+                return @intCast(index);
+            }
+        }
+
+        return -1;
     }
 
     pub fn parseInt(string: anytype, comptime T: type) !T {

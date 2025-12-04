@@ -13,6 +13,7 @@ pub fn runDay(comptime n: u8, allocator: std.mem.Allocator) !void {
         1 => @import("day1.zig").Day1.init(allocator, false),
         2 => @import("day2.zig").Day2.init(allocator, false),
         3 => @import("day3.zig").Day3.init(allocator, false),
+        4 => @import("day4.zig").Day4.init(allocator, false),
         else => return,
     };
 
