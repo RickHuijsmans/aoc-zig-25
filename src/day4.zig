@@ -13,25 +13,21 @@ const NeighbourIterator = struct {
     y: usize,
     pos: usize,
 
-    pub fn init(grid: *const Grid, x: usize, y: usize) NeighbourIterator{
-        return NeighbourIterator{
-            .grid = grid,
-            .x = x,
-            .y = y,
-            .pos = 0
-        };
+    pub fn init(grid: *const Grid, x: usize, y: usize) NeighbourIterator {
+        return NeighbourIterator{ .grid = grid, .x = x, .y = y, .pos = 0 };
     }
 
-    pub fn next(self: *NeighbourIterator) ?.{usize, usize} {
-        while(self.pos < 9): (self.pos += 1){
+    pub fn next(self: *NeighbourIterator) ?struct { usize, usize } {
+        while (self.pos < 9) : (self.pos += 1) {
             const rX = @rem(self.pos, 3);
             const rY = @divFloor(self.pos, 3);
 
-            if((rX == 1 and rY == 1) or (rX == 0 and self.x == 0) or (rY == 0 and self.y == 0) or (rX == 2 and self.x == self.width - 1) or (rY == 2 and self.y == self.height - 1)){
+            if ((rX == 1 and rY == 1) or (rX == 0 and self.x == 0) or (rY == 0 and self.y == 0) or (rX == 2 and self.x == self.grid.width - 1) or (rY == 2 and self.y == self.grid.height - 1)) {
                 continue;
             }
 
-            return .{self.x + rX - 1, self.y + rY - 1};
+            self.pos += 1;
+            return .{ self.x + rX - 1, self.y + rY - 1 };
         }
 
         return null;
@@ -39,30 +35,43 @@ const NeighbourIterator = struct {
 };
 
 const Grid = struct {
-    string: String,
+    string: []u8,
     width: usize,
     height: usize,
 
-    pub fn init(allocator: std.mem.Allocator, input: *const String) !Grid{
+    pub fn init(allocator: std.mem.Allocator, input: *const String) !Grid {
         const width = getLineLength(input);
-        const cleaned = try input.stringReplace(allocator, "\n", "");
-        const height = cleaned.size / width;
-        return Grid { .string = cleaned, .width = width, .height = height };
+        var cleaned = try input.stringReplace(allocator, "\n", "");
+        defer cleaned.deinit();
+
+        const copy = try allocator.alloc(u8, cleaned.contents.len);
+        std.mem.copyForwards(u8, copy, cleaned.contents);
+
+        return initClean(copy, width);
+    }
+
+    pub fn initClean(input: []u8, width: usize) Grid {
+        const height = input.len / width;
+        return Grid{ .string = input, .width = width, .height = height };
+    }
+
+    pub fn deinit(self: *Grid) void {
+        self.string.deinit();
     }
 
     pub fn get(self: *const Grid, x: usize, y: usize) u8 {
-        return self.getByIndex(self.getIndex(x,y));
+        return self.getByIndex(self.getIndex(x, y));
     }
 
-    pub fn getByIndex(self: *const Grid, index: usize) u8{
-        return self.string.contents[index];
+    pub fn getByIndex(self: *const Grid, index: usize) u8 {
+        return self.string[index];
     }
 
-    pub fn getPos(self: *const Grid, index: usize) struct{ usize, usize }{
+    pub fn getPos(self: *const Grid, index: usize) struct { usize, usize } {
         const y = @divFloor(index, self.width);
         const x = @mod(index, self.width);
 
-        return .{x, y};
+        return .{ x, y };
     }
 
     pub fn getIndex(self: *const Grid, x: usize, y: usize) usize {
@@ -71,23 +80,23 @@ const Grid = struct {
 
     pub fn getRow(self: *const Grid, row: usize) []const u8 {
         const start = row * self.height;
-        return self.string.contents[start..start + self.width];
+        return self.string[start .. start + self.width];
     }
 
-    pub fn getNeigbours(self: *const Grid, x: usize, y: usize) NeighbourIterator{
+    pub fn getNeighbours(self: *const Grid, x: usize, y: usize) NeighbourIterator {
         return NeighbourIterator.init(self, x, y);
     }
 
-    pub fn getNeighboursWith(self: *const Grid, x: usize, y: usize, search: u8) u8{
+    pub fn getNeighboursWith(self: *const Grid, x: usize, y: usize, search: u8) u8 {
         var results: u8 = 0;
 
-        inline for(0..3) |rX|{
-            for(0..3) |rY| {
-                if((rX == 1 and rY == 1) or (rX == 0 and x == 0) or (rY == 0 and y == 0) or (rX == 2 and x == self.width - 1) or (rY == 2 and y == self.height - 1)){
+        inline for (0..3) |rX| {
+            for (0..3) |rY| {
+                if ((rX == 1 and rY == 1) or (rX == 0 and x == 0) or (rY == 0 and y == 0) or (rX == 2 and x == self.width - 1) or (rY == 2 and y == self.height - 1)) {
                     continue;
                 }
 
-                if(self.get(x + rX - 1, y + rY - 1) == search){
+                if (self.get(x + rX - 1, y + rY - 1) == search) {
                     results += 1;
                 }
             }
@@ -96,12 +105,16 @@ const Grid = struct {
         return results;
     }
 
-    pub fn clone(self: *const Grid, allocator: std.mem.Allocator) !Grid{
-        return Grid{
-            .string = try self.string.clone(allocator),
-            .width = self.width,
-            .height = self.height
-        };
+    pub fn clone(self: *const Grid, allocator: std.mem.Allocator) !Grid {
+        const copy = try allocator.alloc(u8, self.string.len);
+        std.mem.copyForwards(u8, copy, self.string);
+        return Grid{ .string = copy, .width = self.width, .height = self.height };
+    }
+
+    pub fn print(self: *const Grid) void {
+        for (0..self.height) |row| {
+            std.debug.print("\n{s}", .{self.getRow(row)});
+        }
     }
 
     fn getLineLength(input: *const String) usize {
@@ -147,24 +160,24 @@ pub const Day4 = struct {
         const grid = try Grid.init(alloc, raw);
         var rolls: u64 = 0;
 
-        for(0..grid.string.size)|i|{
+        for (0..grid.string.len) |i| {
             const value = grid.getByIndex(i);
             const x, const y = grid.getPos(i);
 
-            if(x == 0){
-                self.debugLine("",.{});
+            if (x == 0) {
+                self.debugLine("", .{});
             }
 
-            if(value != '@'){
-                self.debug("{s}",.{ [1]u8{value}});
+            if (value != '@') {
+                self.debug("{s}", .{[1]u8{value}});
                 continue;
             }
 
             const neighbours = grid.getNeighboursWith(x, y, '@');
-            if(neighbours < 4){
+            if (neighbours < 4) {
                 self.debug("x", .{});
                 rolls += 1;
-            }else{
+            } else {
                 self.debug("@", .{});
             }
         }
@@ -180,48 +193,70 @@ pub const Day4 = struct {
         var grid = try Grid.init(alloc, raw);
         var copy = try grid.clone(alloc);
         var stack = try List(usize).initCapacity(alloc, 1024);
+        var stack2 = try List(usize).initCapacity(alloc, 1024);
         var rolls: u64 = 0;
         var prevRolls: u64 = 0;
 
-        for(0..grid.string.size)|i|{
+        for (0..grid.string.len) |i| {
             const value = grid.getByIndex(i);
             const x, const y = grid.getPos(i);
 
-            if(x == 0){
-                self.debugLine("",.{});
+            if (x == 0) {
+                self.debugLine("", .{});
             }
 
-            if(value != '@'){
-                self.debug("{s}",.{ [1]u8{value}});
+            if (value != '@') {
+                self.debug("{s}", .{[1]u8{value}});
                 continue;
             }
 
             const neighbours = grid.getNeighboursWith(x, y, '@');
-            if(neighbours < 4){
+            if (neighbours < 4) {
                 self.debug("x", .{});
                 rolls += 1;
 
-                copy.string.contents[i] = 'x';
+                copy.string[i] = 'x';
                 try stack.add(i);
-            }else{
+            } else {
                 self.debug("@", .{});
             }
         }
 
-        var tmp: Grid = undefined;
-        while(rolls != prevRolls){
-            tmp = grid;
-            grid = copy;
-            copy = tmp;
+        self.debugLine("Remove {} rolls of paper: ", .{rolls});
+        prevRolls = rolls;
 
-            // while(stack.count() > 0) {
-            //     const i = stack.pop();
-            // }
+        while (stack.count() > 0) {
+            std.mem.copyForwards(u8, grid.string, copy.string);
+            while (stack.count() > 0) {
+                const i = stack.pop();
+                const x, const y = grid.getPos(i);
 
+                copy.string[i] = '.';
+                var neighbours = grid.getNeighbours(x, y);
+                while (neighbours.next()) |n| {
+                    const nX, const nY = n;
+                    const nI = grid.getIndex(nX, nY);
+                    const nValue = grid.get(nX, nY);
 
+                    if (nValue != '@' or stack2.has(nI)) {
+                        continue;
+                    }
 
+                    const a = grid.getNeighboursWith(nX, nY, '@');
+                    if (a < 4) {
+                        rolls += 1;
+
+                        copy.string[nI] = 'x';
+                        try stack2.add(nI);
+                    }
+                }
+            }
+
+            self.debugLine("\nRemove {} rolls of paper: ", .{rolls - prevRolls});
             prevRolls = rolls;
-            stack.clear();
+            const tmp = stack;
+            stack = stack2;
+            stack2 = tmp;
         }
 
         return rolls;
@@ -251,5 +286,5 @@ test "Solve 2" {
     const context = dayHelper.initTest(Day4);
     const input = try context.getInput();
     const result = try context.day.solve2(context.allocator, &input);
-    try std.testing.expectEqual(0, result);
+    try std.testing.expectEqual(8277, result);
 }

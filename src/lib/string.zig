@@ -20,8 +20,14 @@ pub const String = struct {
         return .{ .contents = terminated, .size = terminated.len };
     }
 
-    pub fn clone(self: *const String, allocator: std.mem.Allocator) !String{
+    pub fn clone(self: *const String, allocator: std.mem.Allocator) !String {
         return init(allocator, self.contents);
+    }
+
+    pub fn cloneWriteable(self: *const String, allocator: std.mem.Allocator) ![]u8 {
+        const copy = try allocator.alloc(u8, self.size);
+        std.mem.copyForwards(u8, copy, self.contents);
+        return copy;
     }
 
     pub fn deinit(self: *String) void {
@@ -63,8 +69,8 @@ pub const String = struct {
     }
 
     pub fn indexOf(self: *const String, char: u8) isize {
-        for(0..self.size)|index|{
-            if(self.contents[index] == char){
+        for (0..self.size) |index| {
+            if (self.contents[index] == char) {
                 return @intCast(index);
             }
         }

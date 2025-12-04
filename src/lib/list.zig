@@ -139,10 +139,13 @@ pub fn List(comptime T: type) type {
             return true;
         }
 
-        pub fn pop(self: *Self) T{
+        pub fn pop(self: *Self) T {
             const lastIndex = self.count() - 1;
             const item = self.items.items[lastIndex];
-            self.removeByIndex(lastIndex);
+            if (!self.removeByIndex(lastIndex)) {
+                @panic("Can't pop an empty list!");
+            }
+
             return item;
         }
 
@@ -156,6 +159,10 @@ pub fn List(comptime T: type) type {
 
         pub fn count(self: *const Self) usize {
             return self.items.items.len;
+        }
+
+        pub fn contains(self: *const Self, item: T) bool {
+            return self.has(item);
         }
 
         pub fn has(self: *const Self, item: T) bool {
