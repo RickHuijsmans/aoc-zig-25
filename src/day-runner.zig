@@ -89,7 +89,7 @@ fn clockCycles() u64 {
         .aarch64,
         .aarch64_be,
         => {
-            return asm volatile ("mrs x0, cntpct_el0"
+            return asm volatile ("mrs x0, cntvct_el0"
                 : [x0] "={x0}" (-> u64),
                 :
                 : .{ .x0 = true });
