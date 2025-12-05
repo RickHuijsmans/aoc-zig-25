@@ -148,7 +148,7 @@ pub const Day5 = struct {
         var i: usize = 0;
         var newRanges = try List(*Range).initWithHashSet(allocator, @intCast(ranges.count()));
 
-        try ranges.sort(struct {
+        ranges.sort(struct {
             pub fn sort(_: void, range1: *Range, range2: *Range) bool {
                 return range1.lower < range2.lower;
             }

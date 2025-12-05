@@ -1,0 +1,25 @@
+# This workflow will build a Zig project
+# For more information see: https://ziglang.org/
+
+name: Zig
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  AdventOfCode2025:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Zig
+      uses: goto-bus-stop/setup-zig@v2
+      with:
+        version: 0.15.2
+        
+    - name: Run
+      run: zig build run --release=fast

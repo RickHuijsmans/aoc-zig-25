@@ -130,12 +130,12 @@ pub fn List(comptime T: type) type {
             return result;
         }
 
-        pub fn sort(self: *Self, comptime sortFn: fn (void, lhs: T, rhs: T) bool) !void {
+        pub fn sort(self: *Self, comptime sortFn: fn (void, lhs: T, rhs: T) bool) void {
             std.mem.sort(T, self.items.items, {}, sortFn);
 
             if (self.hashset) |*hashset| {
                 for (0..self.items.items.len) |i| {
-                    try hashset.put(self.items.items[i], i);
+                    hashset.putAssumeCapacity(self.items.items[i], i);
                 }
             }
         }
@@ -203,6 +203,32 @@ pub fn List(comptime T: type) type {
 
         pub fn count(self: *const Self) usize {
             return self.items.items.len;
+        }
+
+        pub fn binarySearch(self: *const Self, context: anytype, comptime search: fn (context: @TypeOf(context), item: T) isize) ?T {
+            var l: usize = 0;
+            var r: usize = self.count() - 1;
+
+            while (l != r) {
+                const m: usize = l + @as(usize, @intFromFloat(@ceil(@as(f64, @floatFromInt(r - l)) / 2.0)));
+                const v = self.get(m);
+                const a = search(context, v);
+                if (a == 0) {
+                    return v;
+                } else if (a > 0) {
+                    r = m - 1;
+                } else {
+                    l = m;
+                }
+            }
+
+            const v = self.get(l);
+            const a = search(context, v);
+            if (a == 0) {
+                return v;
+            }
+
+            return null;
         }
 
         pub fn contains(self: *const Self, item: T) bool {
