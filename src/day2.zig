@@ -92,66 +92,69 @@ pub const Day2 = struct {
 
     pub fn solve2(self: *const Day2, alloc: std.mem.Allocator, input: *const String) !u64 {
         var invalids: u64 = 0;
-        var checks: u64 = 0;
-        var passes: u64 = 0;
         var sanitized = try input.trimWhitespace(alloc);
         defer sanitized.deinit();
 
         var pairs = try linq.split(sanitized, ",", true);
-        var skips: u64 = 0;
+        var seen = std.AutoHashMap(u64, void).init(alloc);
 
-        const powLookup = utility.getPowLookup(usize, 6);
+        const powLookup = utility.getPowLookup(usize, 11);
         while (pairs.next()) |pair| {
             var segments = try linq.split(pair, "-", true);
             const s1 = segments.next().?;
             const s2 = segments.next().?;
 
             const start = try String.parseInt(s1, u64);
+            const startDigits = utility.getDigits(u64, start);
+
             const end = try String.parseInt(s2, u64);
-            for (start..end + 1) |i| {
-                var isMatch = false;
+            const endDigits = utility.getDigits(u64, end);
 
-                const digits = utility.getDigits(usize, i);
-                if (digits < 2) {
-                    skips += 1;
-                    continue;
-                }
+            self.debugLine("\nRow: {s}", .{pair});
 
-                for (1..digits / 2 + 1) |digit| {
-                    if (@rem(digits, digit) != 0) {
-                        skips += 1;
+            for (startDigits..endDigits + 1) |digit| {
+                const lowerBounds = @max(powLookup[digit - 1], start);
+                const upperBounds = @min(powLookup[digit] - 1, end);
+
+                self.debugLine("Checking digit range {}-{}", .{ lowerBounds, upperBounds });
+
+                for (1..digit / 2 + 1) |patternLength| {
+                    if (digit % patternLength != 0) {
                         continue;
                     }
 
-                    var subMatch = true;
-                    const pow = powLookup[digit];
-                    const pattern = i % pow;
-                    checks += 1;
+                    const multiplier = (powLookup[digit] - 1) / (powLookup[patternLength] - 1);
+                    self.debugLine("Multiplier = {} / {} = {}", .{ powLookup[digit] - 1, powLookup[patternLength] - 1, multiplier });
 
-                    var val = @divFloor(i, pow);
-                    while (val > 0 and subMatch) : (val = @divFloor(val, pow)) {
-                        subMatch = subMatch and pattern == val % pow;
+                    const maxPattern = @min(powLookup[patternLength] - 1, upperBounds / multiplier);
+                    var minPattern = @max(powLookup[patternLength - 1], (lowerBounds + multiplier - 1) / multiplier);
+                    if (patternLength == 1) {
+                        minPattern = @max(1, minPattern);
                     }
 
-                    if (subMatch) {
-                        isMatch = true;
-                        passes += 1;
-                        break;
+                    if (minPattern > maxPattern) {
+                        self.debugLine("-Template out of range", .{});
+                        continue;
                     }
-                }
 
-                if (isMatch) {
-                    invalids += i;
-                    self.debug("\nAdding {d}", .{i});
+                    if (minPattern == maxPattern) {
+                        self.debugLine("Valid template: {} * {}", .{ multiplier, minPattern });
+                    } else {
+                        self.debugLine("Valid template: {} * {}-{}", .{ multiplier, minPattern, maxPattern });
+                    }
+
+                    for (minPattern..maxPattern + 1) |pattern| {
+                        const value = pattern * multiplier;
+                        if ((try seen.getOrPut(value)).found_existing) {
+                            continue;
+                        }
+
+                        self.debugLine("+Added: {}", .{value});
+                        invalids += value;
+                    }
                 }
             }
-
-            self.debug("\nChecks: {}/{}\n", .{ passes, checks });
-            passes = 0;
-            checks = 0;
         }
-
-        self.debug("\nSkips: {}\n", .{skips});
 
         return invalids;
     }
