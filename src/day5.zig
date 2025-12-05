@@ -114,11 +114,7 @@ pub const Day5 = struct {
                         last.lower = range.lower;
                     }
 
-                    // _ = ranges.remove(range);
                     range = last;
-                    // i -= 1;
-
-                    ranges.set(i, range);
                 } else {
                     try newRanges.add(range);
                 }
@@ -192,7 +188,6 @@ pub const Day5 = struct {
                     }
 
                     range = last;
-                    ranges.set(i, range);
                 } else {
                     try newRanges.add(range);
                 }
