@@ -122,9 +122,9 @@ pub const GithubActionsSummary = struct {
     }
 
     /// Write a single day's results to the summary
-    pub fn writeDayResult(self: *Self, day: u8, part: u8, result: u64, time_ms: f64, cycles: u64, memory_kb: f64) void {
+    pub fn writeDayResult(self: *Self, day: u8, part: u8, result: anytype, time_ms: f64, cycles: u64, memory_kb: f64) void {
         if (self.file == null) return;
-        self.print("**Day {d} - Part {d}:** `{d}` in {d:.3} ms / {d} cycles ({d:.2} KB)\n\n", .{
+        self.print("**Day {d} - Part {d}:** `{any}` in {d:.3} ms / {d} cycles ({d:.2} KB)\n\n", .{
             day,
             part,
             result,
@@ -142,9 +142,9 @@ pub const GithubActionsSummary = struct {
     }
 
     /// Add a row to the results table
-    pub fn writeResultRow(self: *Self, day: u8, part: u8, result: u64, time_ms: f64, cycles: u64, memory_kb: f64) void {
+    pub fn writeResultRow(self: *Self, day: u8, part: u8, result: anytype, time_ms: f64, cycles: u64, memory_kb: f64) void {
         if (self.file == null) return;
-        self.print("| {d} | {d} | `{d}` | {d:.3} | {d} | {d:.2} |\n", .{
+        self.print("| {d} | {d} | `{any}` | {d:.3} | {d} | {d:.2} |\n", .{
             day,
             part,
             result,

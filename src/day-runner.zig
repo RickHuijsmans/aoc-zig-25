@@ -2,22 +2,26 @@ const std = @import("std");
 const builtin = @import("builtin");
 const inputHelper = @import("utility/input-helper.zig");
 const ghActions = @import("utility/github-actions.zig");
+const days = @import("days.zig");
 
 pub fn runDay(comptime n: u8, allocator: std.mem.Allocator, summary: *ghActions.GithubActionsSummary) !void {
+    // Get the day module at comptime
+    const day_module = switch (n) {
+        inline 1...25 => |day_num| if (@hasDecl(days, std.fmt.comptimePrint("day{d}", .{day_num})))
+            @field(days, std.fmt.comptimePrint("day{d}", .{day_num}))
+        else
+            return,
+        else => return,
+    };
+
+    const DayType = @field(day_module, std.fmt.comptimePrint("Day{d}", .{n}));
+
     var arena1 = std.heap.ArenaAllocator.init(allocator);
     var arena2 = std.heap.ArenaAllocator.init(allocator);
     defer arena1.deinit();
     defer arena2.deinit();
 
-    // Update this to add new days
-    var d = switch (n) {
-        1 => @import("day1.zig").Day1.init(allocator, false),
-        2 => @import("day2.zig").Day2.init(allocator, false),
-        3 => @import("day3.zig").Day3.init(allocator, false),
-        4 => @import("day4.zig").Day4.init(allocator, false),
-        5 => @import("day5.zig").Day5.init(allocator, false),
-        else => return,
-    };
+    var d = DayType.init(allocator, false);
 
     var input = try inputHelper.getInput(allocator, n);
     defer input.deinit();
@@ -27,28 +31,28 @@ pub fn runDay(comptime n: u8, allocator: std.mem.Allocator, summary: *ghActions.
     var before = std.time.microTimestamp();
     var cycles = clockCycles();
 
-    var result = try d.solve1(arena1.allocator(), &input);
+    const result1 = try d.solve1(arena1.allocator(), &input);
 
     var cyclesDiff = clockCycles() - cycles;
     const time1: f64 = (@as(f64, @floatFromInt(std.time.microTimestamp())) - @as(f64, @floatFromInt(before))) / 1000.0;
     const mem1: f64 = @as(f64, @floatFromInt(arena1.queryCapacity() - memBefore)) / 1024;
 
-    std.debug.print("Day {d} - Part 1: {} in {} ms / {} cycles  ({d:.2} Kb)\n", .{ n, result, time1, cyclesDiff, mem1 });
-    summary.writeResultRow(n, 1, result, time1, cyclesDiff, mem1);
+    std.debug.print("Day {d} - Part 1: {any} in {} ms / {} cycles  ({d:.2} Kb)\n", .{ n, result1, time1, cyclesDiff, mem1 });
+    summary.writeResultRow(n, 1, result1, time1, cyclesDiff, mem1);
 
     // Part 2
     memBefore = arena2.queryCapacity();
     before = std.time.microTimestamp();
     cycles = clockCycles();
 
-    result = try d.solve2(arena2.allocator(), &input);
+    const result2 = try d.solve2(arena2.allocator(), &input);
 
     cyclesDiff = clockCycles() - cycles;
     const time2: f64 = (@as(f64, @floatFromInt(std.time.microTimestamp())) - @as(f64, @floatFromInt(before))) / 1000.0;
     const mem2: f64 = @as(f64, @floatFromInt(arena2.queryCapacity() - memBefore)) / 1024;
 
-    std.debug.print("Day {d} - Part 2: {} in {} ms / {} cycles ({d:.2} Kb)\n", .{ n, result, time2, cyclesDiff, mem2 });
-    summary.writeResultRow(n, 2, result, time2, cyclesDiff, mem2);
+    std.debug.print("Day {d} - Part 2: {any} in {} ms / {} cycles ({d:.2} Kb)\n", .{ n, result2, time2, cyclesDiff, mem2 });
+    summary.writeResultRow(n, 2, result2, time2, cyclesDiff, mem2);
 
     // Record stats for Sankey diagrams
     summary.recordDayStats(n, time1, mem1, time2, mem2);
