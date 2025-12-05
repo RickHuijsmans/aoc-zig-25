@@ -23,3 +23,5 @@ jobs:
         
     - name: Run
       run: zig build run --release=fast
+      env:
+        SESSION: ${{ secrets.SESSION }}

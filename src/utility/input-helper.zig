@@ -7,10 +7,23 @@ pub fn getInput(allocator: std.mem.Allocator, day: u8) !String {
     defer allocator.free(path);
 
     return file.readAllText(allocator, path) catch {
-        var sessionValue = try file.readAllText(allocator, ".session");
-        defer sessionValue.deinit();
+        // Try environment variable first (for GitHub Actions), then fall back to .session file
+        const sessionValue = std.process.getEnvVarOwned(allocator, "SESSION") catch |err| switch (err) {
+            error.EnvironmentVariableNotFound => blk: {
+                var fileSession = try file.readAllText(allocator, ".session");
+                defer fileSession.deinit();
+                // Trim trailing newline if present
+                var contents = fileSession.contents;
+                if (contents.len > 0 and contents[contents.len - 1] == '\n') {
+                    contents = contents[0 .. contents.len - 1];
+                }
+                break :blk try allocator.dupe(u8, contents);
+            },
+            else => return err,
+        };
+        defer allocator.free(sessionValue);
 
-        const cookieHeader = try std.fmt.allocPrint(allocator, "session={s}", .{sessionValue.contents});
+        const cookieHeader = try std.fmt.allocPrint(allocator, "session={s}", .{sessionValue});
         defer allocator.free(cookieHeader);
 
         const url = try std.fmt.allocPrint(allocator, "https://adventofcode.com/2025/day/{d}/input", .{day});
