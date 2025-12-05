@@ -92,44 +92,12 @@ pub const Day5 = struct {
             }
         }
 
-        try ranges.sort(struct {
-            pub fn sort(_: void, range1: *Range, range2: *Range) bool {
-                return range1.lower < range2.lower;
-            }
-        }.sort);
-
-        var lastRange: ?*Range = null;
-        var i: usize = 0;
-        var newRanges = try List(*Range).initWithHashSet(alloc, @intCast(ranges.count()));
-
-        while (i < ranges.count()) : (i += 1) {
-            var range = ranges.get(i);
-            if (lastRange) |last| {
-                if (last.overlaps(range)) {
-                    if (last.upper < range.upper) {
-                        last.upper = range.upper;
-                    }
-
-                    if (last.lower > range.lower) {
-                        last.lower = range.lower;
-                    }
-
-                    range = last;
-                } else {
-                    try newRanges.add(range);
-                }
-            } else {
-                try newRanges.add(range);
-            }
-
-            lastRange = range;
-        }
-
+        var optimized = try optimize(alloc, &ranges);
         var freshIngredients: u64 = 0;
         var ingredientIterator = ingredients.iterator();
         while (ingredientIterator.next()) |ingredient| {
-            for (0..newRanges.count()) |j| {
-                if (newRanges.get(j).contains(ingredient)) {
+            for (0..optimized.count()) |j| {
+                if (optimized.get(j).contains(ingredient)) {
                     freshIngredients += 1;
                     break;
                 }
@@ -165,15 +133,26 @@ pub const Day5 = struct {
             self.debugLine("Parsed range: {}-{}", .{ lower, upper });
         }
 
+        var optimized = try optimize(alloc, &ranges);
+        var freshIngredients: u64 = 0;
+        var rangeIterator = optimized.iterator();
+        while (rangeIterator.next()) |range| {
+            freshIngredients += range.upper - range.lower + 1;
+        }
+
+        return freshIngredients;
+    }
+
+    inline fn optimize(allocator: std.mem.Allocator, ranges: *List(*Range)) !List(*Range) {
+        var lastRange: ?*Range = null;
+        var i: usize = 0;
+        var newRanges = try List(*Range).initWithHashSet(allocator, @intCast(ranges.count()));
+
         try ranges.sort(struct {
             pub fn sort(_: void, range1: *Range, range2: *Range) bool {
                 return range1.lower < range2.lower;
             }
         }.sort);
-
-        var lastRange: ?*Range = null;
-        var i: usize = 0;
-        var newRanges = try List(*Range).initWithHashSet(alloc, @intCast(ranges.count()));
 
         while (i < ranges.count()) : (i += 1) {
             var range = ranges.get(i);
@@ -198,13 +177,7 @@ pub const Day5 = struct {
             lastRange = range;
         }
 
-        var freshIngredients: u64 = 0;
-        var rangeIterator = newRanges.iterator();
-        while (rangeIterator.next()) |range| {
-            freshIngredients += range.upper - range.lower + 1;
-        }
-
-        return freshIngredients;
+        return newRanges;
     }
 };
 
