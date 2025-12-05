@@ -31,7 +31,7 @@ pub fn List(comptime T: type) type {
         }
 
         pub fn initCapacity(allocator: std.mem.Allocator, num: usize) !Self {
-            return .{ .items = try std.ArrayList(T).initCapacity(allocator, num), .allocator = allocator, .hashset = undefined };
+            return .{ .items = try std.ArrayList(T).initCapacity(allocator, num), .allocator = allocator, .hashset = null };
         }
 
         pub fn initWithHashSet(allocator: std.mem.Allocator, num: u32) !Self {
@@ -47,8 +47,8 @@ pub fn List(comptime T: type) type {
             while (it.next()) |value| {
                 instance.add(value);
 
-                if (instance.hashset) |*set| {
-                    set.put(value, i);
+                if (instance.hashset) |*hashset| {
+                    hashset.put(value, i);
                 }
 
                 i += 1;
@@ -59,8 +59,8 @@ pub fn List(comptime T: type) type {
 
         pub fn deinit(self: *Self) void {
             self.items.deinit(self.allocator);
-            if (self.hashset) |*set| {
-                set.deinit();
+            if (self.hashset) |*hashset| {
+                hashset.deinit();
             }
         }
 
@@ -70,8 +70,8 @@ pub fn List(comptime T: type) type {
             }
 
             self.items.deinit(self.allocator);
-            if (self.hashset) |*set| {
-                set.deinit();
+            if (self.hashset) |*hashset| {
+                hashset.deinit();
             }
         }
 
@@ -89,6 +89,10 @@ pub fn List(comptime T: type) type {
 
         pub fn get(self: *const Self, index: usize) T {
             return self.items.items[index];
+        }
+
+        pub fn set(self: *Self, index: usize, item: T) void {
+            self.items.items[index] = item;
         }
 
         pub fn getSafe(self: *const Self, index: usize) ?T {
@@ -126,12 +130,12 @@ pub fn List(comptime T: type) type {
             return result;
         }
 
-        pub fn sort(self: *Self, comptime sortFn: fn (void, lhs: T, rhs: T) bool) void {
+        pub fn sort(self: *Self, comptime sortFn: fn (void, lhs: T, rhs: T) bool) !void {
             std.mem.sort(T, self.items.items, {}, sortFn);
 
-            if (self.hashset) |*set| {
+            if (self.hashset) |*hashset| {
                 for (0..self.items.items.len) |i| {
-                    try set.put(self.items.items[i], i);
+                    try hashset.put(self.items.items[i], i);
                 }
             }
         }
@@ -145,8 +149,8 @@ pub fn List(comptime T: type) type {
         }
 
         pub fn add(self: *Self, item: T) error{OutOfMemory}!void {
-            if (self.hashset) |*set| {
-                try set.put(item, self.items.items.len);
+            if (self.hashset) |*hashset| {
+                try hashset.put(item, self.items.items.len);
             }
 
             try self.items.append(self.allocator, item);
@@ -155,14 +159,14 @@ pub fn List(comptime T: type) type {
         pub fn clear(self: *Self) void {
             self.items.clearRetainingCapacity();
 
-            if (self.hashset) |*set| {
-                set.clearRetainingCapacity();
+            if (self.hashset) |*hashset| {
+                hashset.clearRetainingCapacity();
             }
         }
 
         pub fn remove(self: *Self, item: T) bool {
             const index = self.indexOf(item);
-            return self.removeByIndex(index);
+            return self.removeByIndex(@intCast(index));
         }
 
         pub fn removeByIndex(self: *Self, index: usize) bool {
@@ -170,8 +174,8 @@ pub fn List(comptime T: type) type {
                 return false;
             }
 
-            if (self.hashset) |*set| {
-                _ = set.remove(self.items.items[index]);
+            if (self.hashset) |*hashset| {
+                _ = hashset.remove(self.items.items[index]);
             }
 
             _ = self.items.swapRemove(index);
@@ -182,7 +186,7 @@ pub fn List(comptime T: type) type {
             const lastIndex = self.count() - 1;
             const item = self.items.items[lastIndex];
 
-            if (!self.removeByIndex(lastIndex)) {
+            if (!self.removeByIndex(@intCast(lastIndex))) {
                 @panic("Can't pop an empty list!");
             }
 
@@ -211,8 +215,8 @@ pub fn List(comptime T: type) type {
         }
 
         pub fn indexOf(self: *const Self, item: T) isize {
-            if (self.hashset) |set| {
-                const result = set.get(item);
+            if (self.hashset) |hashset| {
+                const result = hashset.get(item);
                 if (result) |r| {
                     return @intCast(r);
                 } else {

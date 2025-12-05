@@ -68,9 +68,10 @@ pub const String = struct {
         return std.mem.startsWith(u8, self.contents, searchString);
     }
 
-    pub fn indexOf(self: *const String, char: u8) isize {
-        for (0..self.size) |index| {
-            if (self.contents[index] == char) {
+    pub fn indexOf(string: anytype, char: u8) isize {
+        const raw = getRawString(string);
+        for (0..raw.len) |index| {
+            if (raw[index] == char) {
                 return @intCast(index);
             }
         }
