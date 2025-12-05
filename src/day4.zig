@@ -191,9 +191,7 @@ pub const Day4 = struct {
 
     pub fn solve2(self: *const Day4, alloc: std.mem.Allocator, raw: *const String) !u64 {
         var grid = try Grid.init(alloc, raw);
-        var copy = try grid.clone(alloc);
         var stack = try List(usize).initWithHashSet(alloc, 1024);
-        var stack2 = try List(usize).initWithHashSet(alloc, 1024);
 
         var rolls: u64 = 0;
         var prevRolls: u64 = 0;
@@ -216,7 +214,7 @@ pub const Day4 = struct {
                 self.debug("x", .{});
                 rolls += 1;
 
-                copy.string[i] = 'x';
+                grid.string[i] = 'x';
                 try stack.add(i);
             } else {
                 self.debug("@", .{});
@@ -227,42 +225,31 @@ pub const Day4 = struct {
         prevRolls = rolls;
 
         while (stack.count() > 0) {
-            std.mem.copyForwards(u8, grid.string, copy.string);
-            if (self.debugMode and grid.width <= 10) {
-                grid.print();
-            }
+            const i = stack.pop();
+            const x, const y = grid.getPos(i);
 
-            while (stack.count() > 0) {
-                const i = stack.pop();
-                const x, const y = grid.getPos(i);
+            grid.string[i] = '.';
+            var neighbours = grid.getNeighbours(x, y);
+            while (neighbours.next()) |n| {
+                const nX, const nY = n;
+                const nI = grid.getIndex(nX, nY);
+                const nValue = grid.get(nX, nY);
 
-                copy.string[i] = '.';
-                var neighbours = grid.getNeighbours(x, y);
-                while (neighbours.next()) |n| {
-                    const nX, const nY = n;
-                    const nI = grid.getIndex(nX, nY);
-                    const nValue = grid.get(nX, nY);
+                if (nValue != '@' or stack.has(nI)) {
+                    continue;
+                }
 
-                    if (nValue != '@' or stack2.has(nI)) {
-                        continue;
-                    }
+                const a = grid.getNeighboursWith(nX, nY, '@');
+                if (a < 4) {
+                    rolls += 1;
 
-                    const a = grid.getNeighboursWith(nX, nY, '@');
-                    if (a < 4) {
-                        rolls += 1;
-
-                        copy.string[nI] = 'x';
-                        try stack2.add(nI);
-                    }
+                    grid.string[nI] = 'x';
+                    try stack.add(nI);
                 }
             }
-
-            self.debugLine("\nRemove {} rolls of paper: ", .{rolls - prevRolls});
-            prevRolls = rolls;
-            const tmp = stack;
-            stack = stack2;
-            stack2 = tmp;
         }
+
+        self.debugLine("\nRemove {} rolls of paper: ", .{rolls - prevRolls});
 
         return rolls;
     }
