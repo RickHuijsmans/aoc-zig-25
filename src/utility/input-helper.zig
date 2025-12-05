@@ -12,18 +12,15 @@ pub fn getInput(allocator: std.mem.Allocator, day: u8) !String {
             error.EnvironmentVariableNotFound => blk: {
                 var fileSession = try file.readAllText(allocator, ".session");
                 defer fileSession.deinit();
-                // Trim trailing newline if present
-                var contents = fileSession.contents;
-                if (contents.len > 0 and contents[contents.len - 1] == '\n') {
-                    contents = contents[0 .. contents.len - 1];
-                }
-                break :blk try allocator.dupe(u8, contents);
+                break :blk try allocator.dupe(u8, std.mem.trim(u8, fileSession.contents, " \t\r\n"));
             },
             else => return err,
         };
         defer allocator.free(sessionValue);
 
-        const cookieHeader = try std.fmt.allocPrint(allocator, "session={s}", .{sessionValue});
+        // Trim any whitespace from the session value
+        const trimmedSession = std.mem.trim(u8, sessionValue, " \t\r\n");
+        const cookieHeader = try std.fmt.allocPrint(allocator, "session={s}", .{trimmedSession});
         defer allocator.free(cookieHeader);
 
         const url = try std.fmt.allocPrint(allocator, "https://adventofcode.com/2025/day/{d}/input", .{day});
@@ -36,7 +33,7 @@ pub fn getInput(allocator: std.mem.Allocator, day: u8) !String {
         defer body.deinit();
 
         const uri = try std.Uri.parse(url);
-        const headers = [_]std.http.Header{.{ .name = "Cookie", .value = cookieHeader[0 .. cookieHeader.len - 1] }};
+        const headers = [_]std.http.Header{.{ .name = "Cookie", .value = cookieHeader }};
 
         const response = try httpClient.fetch(.{
             .method = .GET,
