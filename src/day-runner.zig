@@ -1,8 +1,9 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const inputHelper = @import("utility/input-helper.zig");
+const ghActions = @import("utility/github-actions.zig");
 
-pub fn runDay(comptime n: u8, allocator: std.mem.Allocator) !void {
+pub fn runDay(comptime n: u8, allocator: std.mem.Allocator, summary: *ghActions.GithubActionsSummary) !void {
     var arena1 = std.heap.ArenaAllocator.init(allocator);
     var arena2 = std.heap.ArenaAllocator.init(allocator);
     defer arena1.deinit();
@@ -29,10 +30,11 @@ pub fn runDay(comptime n: u8, allocator: std.mem.Allocator) !void {
     var result = try d.solve1(arena1.allocator(), &input);
 
     var cyclesDiff = clockCycles() - cycles;
-    var time: f64 = (@as(f64, @floatFromInt(std.time.microTimestamp())) - @as(f64, @floatFromInt(before))) / 1000.0;
-    var usedMem = @as(f64, @floatFromInt(arena1.queryCapacity() - memBefore)) / 1024;
+    const time1: f64 = (@as(f64, @floatFromInt(std.time.microTimestamp())) - @as(f64, @floatFromInt(before))) / 1000.0;
+    const mem1: f64 = @as(f64, @floatFromInt(arena1.queryCapacity() - memBefore)) / 1024;
 
-    std.debug.print("Day {d} - Part 1: {} in {} ms / {} cycles  ({d:.2} Kb)\n", .{ n, result, time, cyclesDiff, usedMem });
+    std.debug.print("Day {d} - Part 1: {} in {} ms / {} cycles  ({d:.2} Kb)\n", .{ n, result, time1, cyclesDiff, mem1 });
+    summary.writeResultRow(n, 1, result, time1, cyclesDiff, mem1);
 
     // Part 2
     memBefore = arena2.queryCapacity();
@@ -42,10 +44,14 @@ pub fn runDay(comptime n: u8, allocator: std.mem.Allocator) !void {
     result = try d.solve2(arena2.allocator(), &input);
 
     cyclesDiff = clockCycles() - cycles;
-    time = (@as(f64, @floatFromInt(std.time.microTimestamp())) - @as(f64, @floatFromInt(before))) / 1000.0;
-    usedMem = @as(f64, @floatFromInt(arena2.queryCapacity() - memBefore)) / 1024;
+    const time2: f64 = (@as(f64, @floatFromInt(std.time.microTimestamp())) - @as(f64, @floatFromInt(before))) / 1000.0;
+    const mem2: f64 = @as(f64, @floatFromInt(arena2.queryCapacity() - memBefore)) / 1024;
 
-    std.debug.print("Day {d} - Part 2: {} in {} ms / {} cycles ({d:.2} Kb)\n", .{ n, result, time, cyclesDiff, usedMem });
+    std.debug.print("Day {d} - Part 2: {} in {} ms / {} cycles ({d:.2} Kb)\n", .{ n, result, time2, cyclesDiff, mem2 });
+    summary.writeResultRow(n, 2, result, time2, cyclesDiff, mem2);
+
+    // Record stats for Sankey diagrams
+    summary.recordDayStats(n, time1, mem1, time2, mem2);
 }
 
 fn clockCycles() u64 {

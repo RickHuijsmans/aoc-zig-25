@@ -7,7 +7,6 @@ pub fn getInput(allocator: std.mem.Allocator, day: u8) !String {
     defer allocator.free(path);
 
     return file.readAllText(allocator, path) catch {
-        // Try environment variable first (for GitHub Actions), then fall back to .session file
         const sessionValue = std.process.getEnvVarOwned(allocator, "SESSION") catch |err| switch (err) {
             error.EnvironmentVariableNotFound => blk: {
                 var fileSession = try file.readAllText(allocator, ".session");
@@ -18,7 +17,6 @@ pub fn getInput(allocator: std.mem.Allocator, day: u8) !String {
         };
         defer allocator.free(sessionValue);
 
-        // Trim any whitespace from the session value
         const trimmedSession = std.mem.trim(u8, sessionValue, " \t\r\n");
         const cookieHeader = try std.fmt.allocPrint(allocator, "session={s}", .{trimmedSession});
         defer allocator.free(cookieHeader);
