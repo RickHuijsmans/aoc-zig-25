@@ -159,6 +159,10 @@ pub const String = struct {
         };
     }
 
+    pub fn isDigit(char: u8) bool {
+        return char >= '0' and char <= '9';
+    }
+
     pub fn isNullTerminated(string: []const u8) bool {
         return string.len > 0 and string[string.len - 1] == 0;
     }

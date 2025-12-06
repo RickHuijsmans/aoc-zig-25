@@ -11,7 +11,7 @@ pub fn getInput(allocator: std.mem.Allocator, day: u8) !String {
             error.EnvironmentVariableNotFound => blk: {
                 var fileSession = try file.readAllText(allocator, ".session");
                 defer fileSession.deinit();
-                break :blk try allocator.dupe(u8, std.mem.trim(u8, fileSession.contents, " \t\r\n"));
+                break :blk try allocator.dupe(u8, std.mem.trim(u8, fileSession.contents[0 .. fileSession.contents.len - 1], " \t\r\n"));
             },
             else => return err,
         };

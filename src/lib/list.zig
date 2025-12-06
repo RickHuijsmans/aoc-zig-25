@@ -21,7 +21,6 @@ pub fn ListIterator(comptime T: type) type {
 pub fn List(comptime T: type) type {
     return struct {
         items: std.ArrayList(T),
-        hashset: ?std.AutoHashMap(T, usize),
         allocator: std.mem.Allocator,
 
         const Self = @This();
@@ -31,14 +30,7 @@ pub fn List(comptime T: type) type {
         }
 
         pub fn initCapacity(allocator: std.mem.Allocator, num: usize) !Self {
-            return .{ .items = try std.ArrayList(T).initCapacity(allocator, num), .allocator = allocator, .hashset = null };
-        }
-
-        pub fn initWithHashSet(allocator: std.mem.Allocator, num: u32) !Self {
-            var hashSet = std.AutoHashMap(T, usize).init(allocator);
-            try hashSet.ensureTotalCapacity(num);
-
-            return .{ .items = try std.ArrayList(T).initCapacity(allocator, num), .allocator = allocator, .hashset = hashSet };
+            return .{ .items = try std.ArrayList(T).initCapacity(allocator, num), .allocator = allocator };
         }
 
         pub fn from(allocator: std.mem.Allocator, it: *ListIterator(T)) !Self {
@@ -46,11 +38,6 @@ pub fn List(comptime T: type) type {
             var i: usize = 0;
             while (it.next()) |value| {
                 instance.add(value);
-
-                if (instance.hashset) |*hashset| {
-                    hashset.put(value, i);
-                }
-
                 i += 1;
             }
 
@@ -59,9 +46,6 @@ pub fn List(comptime T: type) type {
 
         pub fn deinit(self: *Self) void {
             self.items.deinit(self.allocator);
-            if (self.hashset) |*hashset| {
-                hashset.deinit();
-            }
         }
 
         pub fn deinitAll(self: *Self) void {
@@ -70,9 +54,6 @@ pub fn List(comptime T: type) type {
             }
 
             self.items.deinit(self.allocator);
-            if (self.hashset) |*hashset| {
-                hashset.deinit();
-            }
         }
 
         pub fn iterator(self: *Self) ListIterator(T) {
@@ -132,12 +113,6 @@ pub fn List(comptime T: type) type {
 
         pub fn sort(self: *Self, comptime sortFn: fn (void, lhs: T, rhs: T) bool) void {
             std.mem.sort(T, self.items.items, {}, sortFn);
-
-            if (self.hashset) |*hashset| {
-                for (0..self.items.items.len) |i| {
-                    hashset.putAssumeCapacity(self.items.items[i], i);
-                }
-            }
         }
 
         pub fn map(self: *const Self, comptime T2: type, context: anytype, comptime selector: fn (@TypeOf(context), T) anyerror!T2, allocator: std.mem.Allocator) !List(T2) {
@@ -149,19 +124,11 @@ pub fn List(comptime T: type) type {
         }
 
         pub fn add(self: *Self, item: T) error{OutOfMemory}!void {
-            if (self.hashset) |*hashset| {
-                try hashset.put(item, self.items.items.len);
-            }
-
             try self.items.append(self.allocator, item);
         }
 
         pub fn clear(self: *Self) void {
             self.items.clearRetainingCapacity();
-
-            if (self.hashset) |*hashset| {
-                hashset.clearRetainingCapacity();
-            }
         }
 
         pub fn remove(self: *Self, item: T) bool {
@@ -172,10 +139,6 @@ pub fn List(comptime T: type) type {
         pub fn removeByIndex(self: *Self, index: usize) bool {
             if (index < 0) {
                 return false;
-            }
-
-            if (self.hashset) |*hashset| {
-                _ = hashset.remove(self.items.items[index]);
             }
 
             _ = self.items.swapRemove(index);
@@ -241,15 +204,6 @@ pub fn List(comptime T: type) type {
         }
 
         pub fn indexOf(self: *const Self, item: T) isize {
-            if (self.hashset) |hashset| {
-                const result = hashset.get(item);
-                if (result) |r| {
-                    return @intCast(r);
-                } else {
-                    return -1;
-                }
-            }
-
             for (self.items.items, 0..) |list_item, i| {
                 if (list_item == item) {
                     return @intCast(i);

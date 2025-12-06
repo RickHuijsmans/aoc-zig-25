@@ -191,7 +191,7 @@ pub const Day4 = struct {
 
     pub fn solve2(self: *const Day4, alloc: std.mem.Allocator, raw: *const String) !u64 {
         var grid = try Grid.init(alloc, raw);
-        var stack = try List(usize).initWithHashSet(alloc, 1024);
+        var stack = std.AutoArrayHashMap(usize, void).init(alloc);
 
         var rolls: u64 = 0;
         var prevRolls: u64 = 0;
@@ -215,7 +215,7 @@ pub const Day4 = struct {
                 rolls += 1;
 
                 grid.string[i] = 'x';
-                try stack.add(i);
+                try stack.put(i, undefined);
             } else {
                 self.debug("@", .{});
             }
@@ -225,7 +225,7 @@ pub const Day4 = struct {
         prevRolls = rolls;
 
         while (stack.count() > 0) {
-            const i = stack.pop();
+            const i = stack.pop().?.key;
             const x, const y = grid.getPos(i);
 
             grid.string[i] = '.';
@@ -235,7 +235,7 @@ pub const Day4 = struct {
                 const nI = grid.getIndex(nX, nY);
                 const nValue = grid.get(nX, nY);
 
-                if (nValue != '@' or stack.has(nI)) {
+                if (nValue != '@' or stack.contains(nI)) {
                     continue;
                 }
 
@@ -244,7 +244,7 @@ pub const Day4 = struct {
                     rolls += 1;
 
                     grid.string[nI] = 'x';
-                    try stack.add(nI);
+                    try stack.put(nI, undefined);
                 }
             }
         }

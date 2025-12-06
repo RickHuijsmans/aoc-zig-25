@@ -146,7 +146,7 @@ pub const Day5 = struct {
     inline fn optimize(allocator: std.mem.Allocator, ranges: *List(*Range)) !List(*Range) {
         var lastRange: ?*Range = null;
         var i: usize = 0;
-        var newRanges = try List(*Range).initWithHashSet(allocator, @intCast(ranges.count()));
+        var newRanges = try List(*Range).initCapacity(allocator, @intCast(ranges.count()));
 
         ranges.sort(struct {
             pub fn sort(_: void, range1: *Range, range2: *Range) bool {
