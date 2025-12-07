@@ -98,24 +98,12 @@ pub const Day7 = struct {
         const startPos = lines.first().indexOf('S').?;
         const beams = try alloc.alloc(u64, lines.first().size);
         @memset(beams, 0);
-        const nextBeams = try alloc.dupe(u64, beams);
         beams[startPos] = 1;
 
-        const print = (struct {
-            pub fn printBeams(s: *const Day7, b: []u64) void {
-                s.debugLine("", .{});
-
-                for (0..b.len) |i| {
-                    s.debug("{}", .{b[i]});
-                }
-                s.debugLine("", .{});
-            }
-        }.printBeams);
-
-        print(self, beams);
-
+        const nextBeams = try alloc.alloc(u64, lines.first().size);
         self.debug("\n", .{});
         for (1..lines.count()) |i| {
+            @memset(nextBeams, 0);
             const row = lines.get(i);
             for (0..beams.len) |b| {
                 const char = row.contents[b];
@@ -141,8 +129,6 @@ pub const Day7 = struct {
             }
             self.debug("\n", .{});
             std.mem.copyForwards(u64, beams, nextBeams);
-            @memset(nextBeams, 0);
-            print(self, beams);
         }
 
         var paths: u64 = 0;
