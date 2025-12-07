@@ -76,7 +76,7 @@ pub const Day5 = struct {
             }
 
             if (readingRanges) {
-                const separatorIndex = String.indexOf(row, '-');
+                const separatorIndex = String.indexOf(row, '-').?;
                 const lower = try String.parseInt(row[0..@intCast(separatorIndex)], u64);
                 const upper = try String.parseInt(row[@intCast(separatorIndex + 1)..], u64);
 
@@ -120,7 +120,7 @@ pub const Day5 = struct {
                 break;
             }
 
-            const separatorIndex = String.indexOf(row, '-');
+            const separatorIndex = String.indexOf(row, '-').?;
             const lower = try String.parseInt(row[0..@intCast(separatorIndex)], u64);
             const upper = try String.parseInt(row[@intCast(separatorIndex + 1)..], u64);
 

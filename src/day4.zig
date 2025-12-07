@@ -118,7 +118,7 @@ const Grid = struct {
     }
 
     fn getLineLength(input: *const String) usize {
-        return @intCast(input.indexOf('\n'));
+        return @intCast(input.indexOf('\n').?);
     }
 };
 

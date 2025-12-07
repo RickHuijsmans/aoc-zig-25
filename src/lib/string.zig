@@ -64,19 +64,34 @@ pub const String = struct {
         return results;
     }
 
+    pub fn splitMut(self: *const String, delimiter: [:0]const u8, trim_empty: bool, allocator: std.mem.Allocator) !list.List([]u8) {
+        var results = try list.List([]u8).init(allocator);
+        var it = std.mem.splitAny(u8, self.contents, delimiter);
+
+        while (it.next()) |result| {
+            if (trim_empty and isNullOrWhitespace(result))
+                continue;
+
+            const copy = try allocator.dupe(u8, result);
+            try results.add(copy);
+        }
+
+        return results;
+    }
+
     pub fn startsWith(self: *const String, searchString: []const u8) bool {
         return std.mem.startsWith(u8, self.contents, searchString);
     }
 
-    pub fn indexOf(string: anytype, char: u8) isize {
+    pub fn indexOf(string: anytype, char: u8) ?usize {
         const raw = getRawString(string);
         for (0..raw.len) |index| {
             if (raw[index] == char) {
-                return @intCast(index);
+                return index;
             }
         }
 
-        return -1;
+        return null;
     }
 
     pub fn parseInt(string: anytype, comptime T: type) !T {
