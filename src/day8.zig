@@ -17,7 +17,12 @@ const Vec3 = struct {
     }
 
     pub fn distanceSq(self: *const Vec3, other: Vec3) i64 {
-        return std.math.pow(i64, other.x - self.x, 2) + std.math.pow(i64, other.y - self.y, 2) + std.math.pow(i64, other.z - self.z, 2);
+        const left: @Vector(4, i64) = .{ self.x, self.y, self.z, 0 };
+        const right: @Vector(4, i64) = .{ other.x, other.y, other.z, 0 };
+
+        // SIMD :P
+        const diff = left - right;
+        return @reduce(.Add, diff * diff);
     }
 };
 
@@ -139,7 +144,6 @@ pub const Day8 = struct {
     pub fn solve1(self: *const Day8, alloc: std.mem.Allocator, input: *const String) !u64 {
         var rows = try linq.split(input, "\n", true);
         var points = try List(Vec3).init(alloc);
-        var edges = try List(Edge).init(alloc);
 
         while (rows.next()) |row| {
             var vec = Vec3{ .x = 0, .y = 0, .z = 0 };
@@ -164,6 +168,7 @@ pub const Day8 = struct {
             try points.add(vec);
         }
 
+        var edges = try List(Edge).initCapacity(alloc, (points.count() * points.count()) / 2);
         for (0..points.count()) |i| {
             for (i + 1..points.count()) |j| {
                 const distance = points.get(i).distanceSq(points.get(j));
@@ -175,14 +180,11 @@ pub const Day8 = struct {
 
         const targetPairs: usize = if (points.count() == 20) 10 else 1000;
         var disjointSet = try DisjointSet.init(alloc, points.count());
-        var connections: u32 = 0;
 
         for (0..targetPairs) |i| {
             const edge = edges.get(i);
 
-            if (disjointSet.unionSets(edge.left, edge.right)) {
-                connections += 1;
-            }
+            _ = disjointSet.unionSets(edge.left, edge.right);
 
             const left = points.get(edge.left);
             const right = points.get(edge.right);
@@ -247,7 +249,6 @@ pub const Day8 = struct {
         var i: usize = 0;
         while (disjointSet.circuits > 1) : (i += 1) {
             const edge = edges.get(i);
-
             if (disjointSet.unionSets(edge.left, edge.right)) {
                 lastEdge = edge;
             }
