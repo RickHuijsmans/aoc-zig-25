@@ -35,10 +35,15 @@ pub fn runDay(comptime n: u8, allocator: std.mem.Allocator, summary: *ghActions.
 
     var cyclesDiff = clockCycles() - cycles;
     const time1: f64 = (@as(f64, @floatFromInt(std.time.microTimestamp())) - @as(f64, @floatFromInt(before))) / 1000.0;
-    const mem1: f64 = @as(f64, @floatFromInt(arena1.queryCapacity() - memBefore)) / 1024;
-
-    std.debug.print("Day {d} - Part 1: {any} in {} ms / {} cycles  ({d:.2} Kb)\n", .{ n, result1, time1, cyclesDiff, mem1 });
+    var mem1: f64 = @as(f64, @floatFromInt(arena1.queryCapacity() - memBefore)) / 1024;
     summary.writeResultRow(n, 1, result1, time1, cyclesDiff, mem1);
+
+    const unit1 = if (mem1 < 1024) "Kb" else "Mb";
+    if (mem1 > 1024) {
+        mem1 /= 1024;
+    }
+
+    std.debug.print("Day {d} - Part 1: {any} in {} ms / {} cycles  ({d:.2} {s})\n", .{ n, result1, time1, cyclesDiff, mem1, unit1 });
 
     // Part 2
     memBefore = arena2.queryCapacity();
@@ -49,10 +54,15 @@ pub fn runDay(comptime n: u8, allocator: std.mem.Allocator, summary: *ghActions.
 
     cyclesDiff = clockCycles() - cycles;
     const time2: f64 = (@as(f64, @floatFromInt(std.time.microTimestamp())) - @as(f64, @floatFromInt(before))) / 1000.0;
-    const mem2: f64 = @as(f64, @floatFromInt(arena2.queryCapacity() - memBefore)) / 1024;
-
-    std.debug.print("Day {d} - Part 2: {any} in {} ms / {} cycles ({d:.2} Kb)\n", .{ n, result2, time2, cyclesDiff, mem2 });
+    var mem2: f64 = @as(f64, @floatFromInt(arena2.queryCapacity() - memBefore)) / 1024;
     summary.writeResultRow(n, 2, result2, time2, cyclesDiff, mem2);
+
+    const unit2 = if (mem2 < 1024) "Kb" else "Mb";
+    if (mem2 > 1024) {
+        mem2 /= 1024;
+    }
+
+    std.debug.print("Day {d} - Part 2: {any} in {} ms / {} cycles ({d:.2} {s})\n", .{ n, result2, time2, cyclesDiff, mem2, unit2 });
 
     // Record stats for Sankey diagrams
     summary.recordDayStats(n, time1, mem1, time2, mem2);
