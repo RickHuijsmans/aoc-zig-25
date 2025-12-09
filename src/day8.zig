@@ -5,6 +5,7 @@ const file = @import("lib/file.zig");
 const dayHelper = @import("utility/day-helper.zig");
 const inputHelper = @import("utility/input-helper.zig");
 const utility = @import("lib/utility.zig");
+const Stopwatch = @import("lib/stopwatch.zig").Stopwatch;
 const List = @import("lib/list.zig").List;
 
 const Vec3 = struct {
@@ -186,9 +187,11 @@ pub const Day8 = struct {
 
             _ = disjointSet.unionSets(edge.left, edge.right);
 
-            const left = points.get(edge.left);
-            const right = points.get(edge.right);
-            self.debugLine("({}, {}, {}) <> ({}, {}, {}) = {}", .{ left.x, left.y, left.z, right.x, right.y, right.z, edge.distance });
+            if (self.debugMode) {
+                const left = points.get(edge.left);
+                const right = points.get(edge.right);
+                self.debugLine("({}, {}, {}) <> ({}, {}, {}) = {}", .{ left.x, left.y, left.z, right.x, right.y, right.z, edge.distance });
+            }
         }
 
         var sizes = try List(usize).init(alloc);
@@ -207,6 +210,7 @@ pub const Day8 = struct {
     }
 
     pub fn solve2(self: *const Day8, alloc: std.mem.Allocator, input: *const String) !u64 {
+        var stopwatch = Stopwatch.init();
         var rows = try linq.split(input, "\n", true);
         var points = try List(Vec3).init(alloc);
         var edges = try List(Edge).init(alloc);
@@ -234,6 +238,8 @@ pub const Day8 = struct {
             try points.add(vec);
         }
 
+        stopwatch.report("Parsing vectors");
+
         for (0..points.count()) |i| {
             for (i + 1..points.count()) |j| {
                 const distance = points.get(i).distanceSq(points.get(j));
@@ -241,7 +247,11 @@ pub const Day8 = struct {
             }
         }
 
+        stopwatch.report("Creating edges");
+
         edges.sort(Edge.lessThan);
+
+        stopwatch.report("Sorting edges");
 
         var disjointSet = try DisjointSet.init(alloc, points.count());
         var lastEdge: ?Edge = null;
@@ -257,6 +267,8 @@ pub const Day8 = struct {
         if (lastEdge == null) {
             @panic("No final edge?????");
         }
+
+        stopwatch.report("Disjoint set");
 
         const left = points.get(lastEdge.?.left);
         const right = points.get(lastEdge.?.right);
